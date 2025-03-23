@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ArrowRight, Wind, Info, Save, Printer } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
@@ -27,7 +27,10 @@ const WellnessQuiz = () => {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const handleScroll = () => {
+      window.scrollTo(0, 0);
+    };
+    handleScroll();
   }, []);
 
   useEffect(() => {
