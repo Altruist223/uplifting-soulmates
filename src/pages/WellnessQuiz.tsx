@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ArrowRight, Wind, Info, Save, Printer } from 'lucide-react';
@@ -162,6 +163,40 @@ const WellnessQuiz = () => {
   };
 
   const currentQuestion = questions[currentQuestionIndex];
+
+  // Add print styles to head
+  useEffect(() => {
+    // Create style element for print media
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @media print {
+        header, footer, nav, .print\\:hidden {
+          display: none !important;
+        }
+        body, html {
+          background: white !important;
+        }
+        main {
+          padding: 0 !important;
+        }
+        h1 {
+          font-size: 24px !important;
+          margin-bottom: 16px !important;
+        }
+        .glass-card {
+          box-shadow: none !important;
+          border: none !important;
+          padding: 0 !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Cleanup on component unmount
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -345,29 +380,6 @@ const WellnessQuiz = () => {
           )}
         </div>
       </main>
-
-      <style jsx global>{`
-        @media print {
-          header, footer, nav, .print\\:hidden {
-            display: none !important;
-          }
-          body, html {
-            background: white !important;
-          }
-          main {
-            padding: 0 !important;
-          }
-          h1 {
-            font-size: 24px !important;
-            margin-bottom: 16px !important;
-          }
-          .glass-card {
-            box-shadow: none !important;
-            border: none !important;
-            padding: 0 !important;
-          }
-        }
-      `}</style>
     </div>
   );
 };
