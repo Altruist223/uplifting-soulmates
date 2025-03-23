@@ -1,6 +1,9 @@
-
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BookOpen, Star, AlertCircle, Save } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 const promptSuggestions = [
   "What's one small thing I'm grateful for today?",
@@ -21,28 +24,55 @@ const Journal = () => {
   const [saved, setSaved] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState('');
   
-  const handleSave = () => {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  const handleSave = async () => {
     if (!entry.trim()) return;
     
     setIsSaving(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      // In a real app, we would save this entry to a database
-      console.log({
-        date: new Date(),
-        content: entry,
-        prompt: selectedPrompt || null
+    try {
+      if (!user) {
+        toast({
+          title: 'Sign in required',
+          description: 'Please sign in to save your journal entries.',
+        });
+        navigate('/login');
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('journal_entries')
+        .insert({
+          user_id: user.id,
+          content: entry,
+          prompt: selectedPrompt || null
+        });
+        
+      if (error) throw error;
+      
+      toast({
+        title: 'Journal entry saved',
+        description: 'Your journal entry has been saved successfully.',
       });
       
-      setIsSaving(false);
       setSaved(true);
       
-      // Reset success message after a delay
       setTimeout(() => {
         setSaved(false);
       }, 3000);
-    }, 1000);
+      
+    } catch (error: any) {
+      toast({
+        title: 'Error saving entry',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
   
   const handlePromptSelect = (prompt: string) => {

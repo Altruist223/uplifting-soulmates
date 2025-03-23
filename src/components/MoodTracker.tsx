@@ -1,6 +1,9 @@
-
 import { useState } from 'react';
-import { Smile, Meh, Frown, Wind, Sun, Cloud, CloudRain, Moon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Smile, Meh, Frown, Wind, Sun, Cloud, CloudRain, Moon, AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 type Mood = 'great' | 'good' | 'okay' | 'low' | 'bad';
 type Trigger = 'work' | 'relationships' | 'health' | 'sleep' | 'other';
@@ -14,6 +17,10 @@ const MoodTracker = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
   const handleTriggerToggle = (trigger: Trigger) => {
     if (triggers.includes(trigger)) {
       setTriggers(triggers.filter(t => t !== trigger));
@@ -22,34 +29,57 @@ const MoodTracker = () => {
     }
   };
   
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!mood) return;
     
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      // In a real app, we would save this data to a database
-      console.log({
-        date: new Date(),
-        mood,
-        triggers,
-        notes,
-        weather
+    try {
+      if (!user) {
+        toast({
+          title: 'Sign in required',
+          description: 'Please sign in to save your mood entries.',
+        });
+        navigate('/login');
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('mood_entries')
+        .insert({
+          user_id: user.id,
+          mood,
+          triggers,
+          notes: notes || null,
+          weather
+        });
+        
+      if (error) throw error;
+      
+      toast({
+        title: 'Mood tracked successfully',
+        description: 'Your mood entry has been saved.',
       });
       
-      setIsSubmitting(false);
+      setMood(null);
+      setTriggers([]);
+      setNotes('');
+      setWeather(null);
       setSubmitted(true);
       
-      // Reset form after a delay
       setTimeout(() => {
-        setMood(null);
-        setTriggers([]);
-        setNotes('');
-        setWeather(null);
         setSubmitted(false);
       }, 3000);
-    }, 1000);
+      
+    } catch (error: any) {
+      toast({
+        title: 'Error saving mood',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   if (submitted) {
@@ -70,7 +100,6 @@ const MoodTracker = () => {
     <div className="glass-card p-8 max-w-md mx-auto">
       <h3 className="text-xl font-medium mb-6 text-center">How are you feeling?</h3>
       
-      {/* Mood selection */}
       <div className="flex justify-between mb-8">
         <MoodButton 
           label="Great" 
@@ -104,7 +133,6 @@ const MoodTracker = () => {
         />
       </div>
       
-      {/* Weather selection */}
       <div className="mb-6">
         <h4 className="text-sm uppercase tracking-wider text-primary/70 font-medium mb-3">
           Weather
@@ -138,7 +166,6 @@ const MoodTracker = () => {
         </div>
       </div>
       
-      {/* Triggers/factors */}
       <div className="mb-6">
         <h4 className="text-sm uppercase tracking-wider text-primary/70 font-medium mb-3">
           Contributing Factors
@@ -172,7 +199,6 @@ const MoodTracker = () => {
         </div>
       </div>
       
-      {/* Notes */}
       <div className="mb-8">
         <label className="text-sm uppercase tracking-wider text-primary/70 font-medium mb-3 block">
           Notes (Optional)

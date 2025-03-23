@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ArrowRight, Wind, Info, Save, Printer } from 'lucide-react';
@@ -8,6 +7,8 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 type Question = {
   id: number;
@@ -17,6 +18,8 @@ type Question = {
 
 const WellnessQuiz = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
@@ -145,28 +148,62 @@ const WellnessQuiz = () => {
     });
   };
 
-  const saveResults = () => {
+  const saveResults = async () => {
     const result = calculateResult();
     const score = answers.reduce((sum, answer) => sum + answer, 0);
     
-    toast({
-      title: "Results saved",
-      description: "Your quiz results have been saved for future reference.",
-    });
-    
-    localStorage.setItem('wellnessQuizResult', JSON.stringify({
-      date: new Date().toISOString(),
-      score,
-      level: result.level,
-      recommendations: result.recommendations
-    }));
+    try {
+      if (!user) {
+        toast({
+          title: 'Results saved locally',
+          description: 'Sign in to save your results to your account.',
+        });
+        
+        localStorage.setItem('wellnessQuizResult', JSON.stringify({
+          date: new Date().toISOString(),
+          score,
+          level: result.level,
+          recommendations: result.recommendations
+        }));
+        
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('quiz_results')
+        .insert({
+          user_id: user.id,
+          score,
+          level: result.level,
+          recommendations: result.recommendations
+        });
+        
+      if (error) throw error;
+      
+      toast({
+        title: 'Results saved',
+        description: 'Your quiz results have been saved to your profile.',
+      });
+      
+    } catch (error: any) {
+      toast({
+        title: 'Error saving results',
+        description: error.message,
+        variant: 'destructive',
+      });
+      
+      localStorage.setItem('wellnessQuizResult', JSON.stringify({
+        date: new Date().toISOString(),
+        score,
+        level: result.level,
+        recommendations: result.recommendations
+      }));
+    }
   };
 
   const currentQuestion = questions[currentQuestionIndex];
 
-  // Add print styles to head
   useEffect(() => {
-    // Create style element for print media
     const style = document.createElement('style');
     style.innerHTML = `
       @media print {
@@ -192,7 +229,6 @@ const WellnessQuiz = () => {
     `;
     document.head.appendChild(style);
     
-    // Cleanup on component unmount
     return () => {
       document.head.removeChild(style);
     };
