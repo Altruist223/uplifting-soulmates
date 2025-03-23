@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Wind, BarChart2, BookOpen, Info } from 'lucide-react';
+import { ArrowRight, Wind, BarChart2, BookOpen, Info, CheckSquare } from 'lucide-react';
 import Header from '@/components/Header';
 import Affirmation from '@/components/Affirmation';
 
@@ -17,6 +17,12 @@ const Index = () => {
       title: 'Guided Breathing',
       description: 'Simple breathing exercises to help calm your mind and reduce anxiety.',
       link: '/breathe'
+    },
+    {
+      icon: <CheckSquare className="w-5 h-5" />,
+      title: 'Wellness Quiz',
+      description: 'Take a brief assessment to understand your current mental well-being.',
+      link: '/wellness-quiz'
     },
     {
       icon: <BarChart2 className="w-5 h-5" />,
