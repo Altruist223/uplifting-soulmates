@@ -1,12 +1,12 @@
-
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ArrowRight, Wind, Info } from 'lucide-react';
+import { ChevronLeft, ArrowRight, Wind, Info, Save, Printer } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Card, CardContent } from '@/components/ui/card';
 
 type Question = {
   id: number;
@@ -20,6 +20,7 @@ const WellnessQuiz = () => {
   const [answers, setAnswers] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -27,6 +28,7 @@ const WellnessQuiz = () => {
 
   useEffect(() => {
     setProgress((currentQuestionIndex / questions.length) * 100);
+    setSelectedOption(null);
   }, [currentQuestionIndex]);
 
   const questions: Question[] = [
@@ -73,17 +75,21 @@ const WellnessQuiz = () => {
   ];
 
   const handleAnswer = (optionIndex: number) => {
-    const newAnswers = [...answers];
-    newAnswers[currentQuestionIndex] = optionIndex;
-    setAnswers(newAnswers);
+    setSelectedOption(optionIndex);
+    
+    setTimeout(() => {
+      const newAnswers = [...answers];
+      newAnswers[currentQuestionIndex] = optionIndex;
+      setAnswers(newAnswers);
 
-    if (currentQuestionIndex < questions.length - 1) {
-      setTimeout(() => {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
-      }, 300);
-    } else {
-      setShowResults(true);
-    }
+      if (currentQuestionIndex < questions.length - 1) {
+        setTimeout(() => {
+          setCurrentQuestionIndex(currentQuestionIndex + 1);
+        }, 400);
+      } else {
+        setShowResults(true);
+      }
+    }, 300);
   };
 
   const calculateResult = () => {
@@ -130,6 +136,31 @@ const WellnessQuiz = () => {
     window.scrollTo(0, 0);
   };
 
+  const printResults = () => {
+    window.print();
+    toast({
+      title: "Print dialog opened",
+      description: "You can now print or save your results as PDF.",
+    });
+  };
+
+  const saveResults = () => {
+    const result = calculateResult();
+    const score = answers.reduce((sum, answer) => sum + answer, 0);
+    
+    toast({
+      title: "Results saved",
+      description: "Your quiz results have been saved for future reference.",
+    });
+    
+    localStorage.setItem('wellnessQuizResult', JSON.stringify({
+      date: new Date().toISOString(),
+      score,
+      level: result.level,
+      recommendations: result.recommendations
+    }));
+  };
+
   const currentQuestion = questions[currentQuestionIndex];
 
   return (
@@ -173,17 +204,20 @@ const WellnessQuiz = () => {
                   
                   <div className="space-y-3">
                     {currentQuestion.options.map((option, index) => (
-                      <button
+                      <motion.button
                         key={index}
                         onClick={() => handleAnswer(index)}
+                        whileTap={{ scale: 0.98 }}
                         className={`w-full p-4 text-left rounded-md border transition-all hover:bg-primary/5 ${
-                          answers[currentQuestionIndex] === index 
+                          selectedOption === index 
                             ? 'border-primary bg-primary/10' 
-                            : 'border-border'
+                            : answers[currentQuestionIndex] === index 
+                              ? 'border-primary bg-primary/10' 
+                              : 'border-border'
                         }`}
                       >
                         {option}
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
                 </motion.div>
@@ -193,32 +227,42 @@ const WellnessQuiz = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5 }}
+                className="print:mx-0 print:p-0"
               >
                 {(() => {
                   const result = calculateResult();
+                  const score = answers.reduce((sum, answer) => sum + answer, 0);
                   return (
                     <div>
                       <h2 className="text-2xl mb-4">Your Results</h2>
-                      <div className="mb-6 p-4 rounded-md bg-primary/5 border border-primary/20">
-                        <div className="text-lg mb-2">
-                          Level: <span className="font-medium">{result.level}</span>
-                        </div>
-                        <p className="text-foreground/80">{result.message}</p>
-                      </div>
+                      
+                      <Card className="mb-6 border-primary/20">
+                        <CardContent className="p-6">
+                          <div className="text-lg mb-2 flex justify-between items-center">
+                            <span>Level: <span className="font-medium">{result.level}</span></span>
+                            <span className="text-sm bg-primary/10 text-primary py-1 px-3 rounded-full">Score: {score}/{questions.length * 3}</span>
+                          </div>
+                          <p className="text-foreground/80">{result.message}</p>
+                        </CardContent>
+                      </Card>
                       
                       <div className="mb-6">
                         <h3 className="text-lg mb-3">Recommendations:</h3>
-                        <ul className="space-y-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {result.recommendations.map((recommendation, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2"></div>
-                              <span>{recommendation}</span>
-                            </li>
+                            <Card key={index} className="border-primary/10 hover:border-primary/30 transition-colors">
+                              <CardContent className="p-4">
+                                <div className="flex items-start gap-3">
+                                  <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                                  <span>{recommendation}</span>
+                                </div>
+                              </CardContent>
+                            </Card>
                           ))}
-                        </ul>
+                        </div>
                       </div>
                       
-                      <div className="mt-8 flex flex-col sm:flex-row gap-4">
+                      <div className="flex flex-wrap gap-4 mt-8 print:hidden">
                         <Button 
                           onClick={restartQuiz}
                           variant="outline"
@@ -226,22 +270,35 @@ const WellnessQuiz = () => {
                           Retake Quiz
                         </Button>
                         <Button
-                          onClick={() => {
-                            toast({
-                              title: "Results saved",
-                              description: "Your results have been saved for your reference.",
-                            });
-                          }}
+                          onClick={saveResults}
+                          variant="outline"
+                          className="gap-2"
                         >
+                          <Save className="w-4 h-4" />
                           Save Results
+                        </Button>
+                        <Button
+                          onClick={printResults}
+                          variant="outline"
+                          className="gap-2"
+                        >
+                          <Printer className="w-4 h-4" />
+                          Print Results
                         </Button>
                       </div>
                       
-                      <p className="mt-6 text-sm text-foreground/60">
-                        <strong>Note:</strong> This quiz is based on the PHQ-9, a screening tool for depression. 
-                        It is not a diagnostic tool or a substitute for professional help. 
-                        If you're experiencing distress, please consult a healthcare professional.
-                      </p>
+                      <div className="mt-6 p-4 border border-dashed border-primary/20 rounded-md bg-primary/5 print:hidden">
+                        <h4 className="font-medium mb-2">How to use these results:</h4>
+                        <p className="text-sm text-foreground/80 mb-3">
+                          Use this assessment as a starting point for understanding your mental wellbeing. 
+                          Remember that this quiz is based on the PHQ-9, a screening tool for depression, 
+                          but it is not a diagnostic tool or a substitute for professional help.
+                        </p>
+                        <p className="text-sm text-foreground/80">
+                          If you're experiencing distress, please consult a healthcare professional.
+                          Explore the resources section for more information and support options.
+                        </p>
+                      </div>
                     </div>
                   );
                 })()}
@@ -257,7 +314,7 @@ const WellnessQuiz = () => {
           )}
           
           {showResults && (
-            <div className="mt-12">
+            <div className="mt-12 print:hidden">
               <h3 className="text-xl mb-4">Where to go from here</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Link to="/breathe" className="glass-card p-6 hover-lift hover:border-primary/30 transition-all">
@@ -288,6 +345,29 @@ const WellnessQuiz = () => {
           )}
         </div>
       </main>
+
+      <style jsx global>{`
+        @media print {
+          header, footer, nav, .print\\:hidden {
+            display: none !important;
+          }
+          body, html {
+            background: white !important;
+          }
+          main {
+            padding: 0 !important;
+          }
+          h1 {
+            font-size: 24px !important;
+            margin-bottom: 16px !important;
+          }
+          .glass-card {
+            box-shadow: none !important;
+            border: none !important;
+            padding: 0 !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };
