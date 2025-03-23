@@ -1,11 +1,11 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// These are public keys - safe to be in client code
-const supabaseUrl = 'https://your-supabase-url.supabase.co';
-const supabaseAnonKey = 'your-anon-key';
+// Import the proper Supabase client configuration
+import { supabase as supabaseClient } from '@/integrations/supabase/client';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Export the configured client
+export const supabase = supabaseClient;
 
 // Types for our database tables
 export type MoodEntry = {
