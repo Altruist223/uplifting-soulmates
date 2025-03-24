@@ -1,9 +1,8 @@
-
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { supabase, MoodEntry, JournalEntry, QuizResult } from '@/lib/supabase';
+import { supabase, MoodEntry, JournalEntry, QuizResult, mapDbMoodEntry, mapDbJournalEntry, mapDbQuizResult } from '@/lib/supabase';
 import { ChevronLeft, LogOut, Calendar, BarChart, Book, ActivitySquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -39,7 +38,7 @@ const Profile = () => {
           .order('created_at', { ascending: false });
           
         if (moodError) throw moodError;
-        setMoodEntries(moodData || []);
+        setMoodEntries(moodData ? moodData.map(mapDbMoodEntry) : []);
         
         // Fetch journal entries
         const { data: journalData, error: journalError } = await supabase
@@ -49,7 +48,7 @@ const Profile = () => {
           .order('created_at', { ascending: false });
           
         if (journalError) throw journalError;
-        setJournalEntries(journalData || []);
+        setJournalEntries(journalData ? journalData.map(mapDbJournalEntry) : []);
         
         // Fetch quiz results
         const { data: quizData, error: quizError } = await supabase
@@ -59,7 +58,7 @@ const Profile = () => {
           .order('created_at', { ascending: false });
           
         if (quizError) throw quizError;
-        setQuizResults(quizData || []);
+        setQuizResults(quizData ? quizData.map(mapDbQuizResult) : []);
         
       } catch (error: any) {
         toast({
